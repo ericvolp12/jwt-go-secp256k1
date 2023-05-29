@@ -12,8 +12,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/dgrijalva/jwt-go"
-	ecrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/golang-jwt/jwt"
 )
 
 // ES256K and ES256K-R algorithms. uPort uses SigningMethodES256KR.
@@ -109,24 +108,7 @@ func (sm *SigningMethodSecp256k1) Verify(signingString, signature string, key in
 // Sign produces a secp256k1 signature for a JWT. The type of key has
 // to be *PrivateKey.
 func (sm *SigningMethodSecp256k1) Sign(signingString string, key interface{}) (string, error) {
-	prv, ok := key.(*ecdsa.PrivateKey)
-	if !ok {
-		return "", ErrWrongKeyFormat
-	}
-
-	if !sm.hash.Available() {
-		return "", ErrHashUnavailable
-	}
-	hasher := sm.hash.New()
-	hasher.Write([]byte(signingString))
-
-	sig, err := ecrypto.Sign(hasher.Sum(nil), prv)
-	if err != nil {
-		return "", ErrFailedSigning
-	}
-	out := sm.toOutSig(sig)
-
-	return jwt.EncodeSegment(out), nil
+	return "", ErrFailedSigning
 }
 
 // Alg returns the algorithm name.
