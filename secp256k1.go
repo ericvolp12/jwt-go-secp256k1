@@ -8,11 +8,11 @@ package secp256k1
 
 import (
 	"crypto"
-	"crypto/ecdsa"
 	"errors"
-	"math/big"
 
 	"github.com/golang-jwt/jwt"
+
+	"gitlab.com/yawning/secp256k1-voi/secec"
 )
 
 // ES256K and ES256K-R algorithms. uPort uses SigningMethodES256KR.
@@ -76,7 +76,7 @@ var (
 // Verify it is a secp256k1 key before passing, otherwise it will validate with
 // that type of key instead. This can be done using ethereum's crypto package.
 func (sm *SigningMethodSecp256k1) Verify(signingString, signature string, key interface{}) error {
-	pub, ok := key.(*ecdsa.PublicKey)
+	pub, ok := key.(*secec.PublicKey)
 	if !ok {
 		return ErrWrongKeyFormat
 	}
@@ -84,8 +84,6 @@ func (sm *SigningMethodSecp256k1) Verify(signingString, signature string, key in
 	if !sm.hash.Available() {
 		return ErrHashUnavailable
 	}
-	hasher := sm.hash.New()
-	hasher.Write([]byte(signingString))
 
 	sig, err := jwt.DecodeSegment(signature)
 	if err != nil {
@@ -95,10 +93,14 @@ func (sm *SigningMethodSecp256k1) Verify(signingString, signature string, key in
 		return ErrBadSignature
 	}
 
-	bir := new(big.Int).SetBytes(sig[:32])   // R
-	bis := new(big.Int).SetBytes(sig[32:64]) // S
+	h := sm.hash.New()
+	h.Write([]byte(signingString))
 
-	if !ecdsa.Verify(pub, hasher.Sum(nil), bir, bis) {
+	opts := &secec.ECDSAOptions{
+		Hash:     sm.hash,
+		Encoding: secec.EncodingCompact,
+	}
+	if !pub.Verify(h.Sum(nil), sig, opts) {
 		return ErrVerification
 	}
 
